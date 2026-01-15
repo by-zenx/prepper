@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TabSection } from "@/components/sections"
 import { Badge } from "@/components/ui/badge"
 
 import { trpc } from "@/app/_trpc/client"
@@ -17,45 +16,8 @@ interface TestPaperOverViewPageProps {
 }
 
 export default function TestPaperOverViewPage({ params }: TestPaperOverViewPageProps) {
-  const router = useRouter()
   const searchParams = useSearchParams()
-
-  useEffect(() => {
-    const tabFromUrl = searchParams.get("tab")
-
-    if (!tabFromUrl) {
-      router.replace(
-        `/test-papers/${params.id}?tab=overview`,
-        { scroll: false }
-      )
-    }
-  }, [router, searchParams, params.id])
-
-  // Get initial tab from URL or default to "overview"
   const initialTab = searchParams.get("tab") || "overview"
-  const [activeTab, setActiveTab] = useState(initialTab)
-  const [isAnimating, setIsAnimating] = useState(false)
-
-  // Update URL when tab changes
-  const handleTabChange = (value: string) => {
-    if (value === activeTab || isAnimating) return
-
-    setIsAnimating(true)
-    setTimeout(() => {
-      setActiveTab(value)
-      const newUrl = `/test-papers/${params.id}?tab=${value}`
-      router.push(newUrl, { scroll: false })
-      setTimeout(() => setIsAnimating(false), 50)
-    }, 150)
-  }
-
-  // Sync tab state with URL changes
-  useEffect(() => {
-    const currentTab = searchParams.get("tab") || "overview"
-    if (currentTab !== activeTab) {
-      setActiveTab(currentTab)
-    }
-  }, [searchParams, activeTab])
 
   const {
     data: testPaper,
@@ -95,6 +57,33 @@ export default function TestPaperOverViewPage({ params }: TestPaperOverViewPageP
     )
   }
 
+
+  const tabs = [
+    {
+      value: "overview",
+      label: "Overview"
+    },
+    {
+      value: "questions",
+      label: "Questions"
+    },
+    {
+      value: "analytics",
+      label: "Analytics"
+    },
+    {
+      value: "settings",
+      label: "Settings"
+    },
+  ]
+
+  const contents = {
+    overview: <TestPaperOverView testPaper={testPaper} />,
+    questions: <TestPaperQuestions testPaperId={params.id} />,
+    analytics: <div>Analytics</div>,
+    settings: <div>Settings</div>,
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -108,95 +97,7 @@ export default function TestPaperOverViewPage({ params }: TestPaperOverViewPageP
         </Badge>
       </div>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 relative">
-          <div
-            className="absolute bottom-0 h-0.5 bg-primary transition-all duration-200 ease-in-out"
-            style={{
-              left: `${(activeTab === 'overview' ? 0 : activeTab === 'questions' ? 25 : activeTab === 'analytics' ? 50 : 75)}%`,
-              width: '25%'
-            }}
-          />
-          <TabsTrigger
-            value="overview"
-            className="relative transition-all duration-200 ease-in-out hover:bg-muted/50 data-[state=active]:text-primary data-[state=active]:font-medium"
-          >
-            Overview
-          </TabsTrigger>
-          <TabsTrigger
-            value="questions"
-            className="relative transition-all duration-200 ease-in-out hover:bg-muted/50 data-[state=active]:text-primary data-[state=active]:font-medium"
-          >
-            Questions
-          </TabsTrigger>
-          <TabsTrigger
-            value="analytics"
-            className="relative transition-all duration-200 ease-in-out hover:bg-muted/50 data-[state=active]:text-primary data-[state=active]:font-medium"
-          >
-            Analytics
-          </TabsTrigger>
-          <TabsTrigger
-            value="settings"
-            className="relative transition-all duration-200 ease-in-out hover:bg-muted/50 data-[state=active]:text-primary data-[state=active]:font-medium"
-          >
-            Settings
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent
-          value="overview"
-          className="mt-6"
-        >
-          <div className={`transition-all duration-300 ease-in-out ${activeTab === 'overview' && !isAnimating
-              ? 'opacity-100 translate-y-0'
-              : 'opacity-0 translate-y-4'
-            }`}>
-            <TestPaperOverView testPaper={testPaper} />
-          </div>
-        </TabsContent>
-
-        <TabsContent
-          value="questions"
-          className="mt-6"
-        >
-          <div className={`transition-all duration-300 ease-in-out ${activeTab === 'questions' && !isAnimating
-              ? 'opacity-100 translate-y-0'
-              : 'opacity-0 translate-y-4'
-            }`}>
-            <TestPaperQuestions testPaperId={params.id} />
-          </div>
-        </TabsContent>
-
-        <TabsContent
-          value="analytics"
-          className="mt-6"
-        >
-          <div className={`transition-all duration-300 ease-in-out ${activeTab === 'analytics' && !isAnimating
-              ? 'opacity-100 translate-y-0'
-              : 'opacity-0 translate-y-4'
-            }`}>
-            <div className="text-center py-12">
-              <h3 className="text-lg font-medium text-muted-foreground">Analytics Tab</h3>
-              <p className="text-sm text-muted-foreground mt-2">Analytics coming soon...</p>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent
-          value="settings"
-          className="mt-6"
-        >
-          <div className={`transition-all duration-300 ease-in-out ${activeTab === 'settings' && !isAnimating
-              ? 'opacity-100 translate-y-0'
-              : 'opacity-0 translate-y-4'
-            }`}>
-            <div className="text-center py-12">
-              <h3 className="text-lg font-medium text-muted-foreground">Settings Tab</h3>
-              <p className="text-sm text-muted-foreground mt-2">Settings coming soon...</p>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+      <TabSection tabs={tabs} basePath={`/test-papers/${params.id}`} contents={contents} defaultTab={initialTab} />
     </div>
   )
 }

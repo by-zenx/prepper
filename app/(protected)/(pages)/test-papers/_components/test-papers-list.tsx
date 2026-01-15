@@ -191,7 +191,7 @@ export function TestPapersList({ initialTestPapers }: Props) {
         onSuccess={refetch}
       />
 
-      <div className="container">
+      <div className="">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">{STRINGS.title}</h1>
