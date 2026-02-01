@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useRouter, usePathname } from "next/navigation"
 import {
   BookOpen, Settings, HelpCircle, LogOut, Moon, Sun,
-  ChevronRight, Menu, Lock, Unlock
+  ChevronRight, Menu, Lock, Unlock, Loader2
 } from "lucide-react"
 
 import { ISidebarItem, SIDEBAR_ITEMS } from "@/config"
@@ -21,10 +21,18 @@ export const DesktopSidebar = () => {
   const { theme, setTheme } = useTheme()
   const [collapsed, setCollapsed] = useState(false)
   const [hovering, setHovering] = useState(false)
+  const [navigating, setNavigating] = useState<string | null>(null)
   const pathname = usePathname()
   const router = useRouter()
 
   const shouldExpand = !collapsed || hovering
+
+  const handleNavigate = (href: string) => {
+    setNavigating(href)
+    router.push(href)
+    // Clear navigating state after a reasonable time
+    setTimeout(() => setNavigating(null), 2000)
+  }
 
   useEffect(() => {
     const width = shouldExpand
@@ -122,7 +130,8 @@ export const DesktopSidebar = () => {
               active={pathname === item.href || pathname.startsWith(item.href + "/")}
               pathname={pathname}
               delay={idx * 0.03}
-              onNavigate={(href: string) => router.push(href)}
+              navigating={navigating}
+              onNavigate={handleNavigate}
             />
           ))}
         </nav>
@@ -160,20 +169,43 @@ export const DesktopSidebar = () => {
   )
 }
 
-const SidebarNavItem = ({ item, expanded, active, delay, onNavigate, pathname }: { item: ISidebarItem, expanded: boolean, active: boolean, delay: number, onNavigate: (href: string) => void, pathname: string }) => {
+const SidebarNavItem = ({ item, expanded, active, delay, onNavigate, pathname, navigating }: { 
+  item: ISidebarItem, 
+  expanded: boolean, 
+  active: boolean, 
+  delay: number, 
+  onNavigate: (href: string) => void, 
+  pathname: string,
+  navigating: string | null
+}) => {
   const [open, setOpen] = useState(false)
   const Icon = item.icon
+  const isNavigating = navigating === item.href
 
   return (
     <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="mb-1">
       <button
         onClick={() => (item.subItems ? setOpen(!open) : onNavigate(item.href))}
-        className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all relative overflow-hidden ${active
-          ? "bg-primary text-background shadow-sm"
-          : "hover:bg-accent text-foreground"
-          }`}
+        disabled={isNavigating}
+        className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all relative overflow-hidden ${
+          active
+            ? "bg-primary text-background shadow-sm"
+            : "hover:bg-accent text-foreground"
+        } ${isNavigating ? "opacity-70 cursor-not-allowed" : ""}`}
       >
-        <Icon className="h-5 w-5 flex-shrink-0 relative z-10" />
+        <div className="relative">
+          <Icon className={`h-5 w-5 flex-shrink-0 relative z-10 ${isNavigating ? "animate-pulse" : ""}`} />
+          {isNavigating && (
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+            </motion.div>
+          )}
+        </div>
         <AnimatePresence>
           {expanded && (
             <motion.span
@@ -183,7 +215,7 @@ const SidebarNavItem = ({ item, expanded, active, delay, onNavigate, pathname }:
               transition={{ duration: 0.15 }}
               className="text-sm font-medium truncate relative z-10"
             >
-              {item.name}
+              {isNavigating ? "Loading..." : item.name}
             </motion.span>
           )}
         </AnimatePresence>
@@ -204,19 +236,30 @@ const SidebarNavItem = ({ item, expanded, active, delay, onNavigate, pathname }:
             className="overflow-hidden"
           >
             <div className="pl-11 pr-2 pt-1 pb-1 space-y-1">
-              {item.subItems.map((s: any) => (
-                <button
-                  key={s.name}
-                  onClick={() => onNavigate(s.href)}
-                  className={`block w-full text-left px-3 py-1.5 rounded-md text-sm transition-all 
-                    ${pathname === s.href || pathname.startsWith(s.href + "/")
-                      ? "text-primary bg-accent"
-                      : "text-foreground/70 hover:text-primary hover:bg-accent"
-                    }`}
-                >
-                  {s.name}
-                </button>
-              ))}
+              {item.subItems.map((s: any) => {
+                const isSubNavigating = navigating === s.href
+                return (
+                  <button
+                    key={s.name}
+                    onClick={() => onNavigate(s.href)}
+                    disabled={isSubNavigating}
+                    className={`block w-full text-left px-3 py-1.5 rounded-md text-sm transition-all relative
+                      ${pathname === s.href || pathname.startsWith(s.href + "/")
+                        ? "text-primary bg-accent"
+                        : "text-foreground/70 hover:text-primary hover:bg-accent"
+                      } ${isSubNavigating ? "opacity-70 cursor-not-allowed" : ""}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isSubNavigating && (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      )}
+                      <span className={isSubNavigating ? "animate-pulse" : ""}>
+                        {isSubNavigating ? "Loading..." : s.name}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </motion.div>
         )}
