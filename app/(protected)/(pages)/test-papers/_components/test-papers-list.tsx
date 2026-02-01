@@ -8,6 +8,7 @@ import { Icons } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/tables"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import { trpc } from '@/app/_trpc/client'
 import { UploadPaperDialog } from "./upload-test-paper-dailog"
@@ -55,6 +56,100 @@ export function TestPapersList({ initialTestPapers }: Props) {
       console.error("Processing error:", err)
       alert(err instanceof Error ? err.message : "Unknown error during processing.")
     }
+  }
+
+  // Mobile Card Component
+  const MobileTestPaperCard = ({ paper }: { paper: TestPaperGetAllType }) => {
+    const statusMap: Record<string, string> = {
+      queued: "bg-yellow-100 text-yellow-800",
+      processing: "bg-blue-100 text-blue-800",
+      review: "bg-purple-100 text-purple-800",
+      failed: "bg-red-100 text-red-800",
+      completed: "bg-green-100 text-green-800",
+    }
+
+    const uploadFile = paper.uploadFiles;
+    const isPdf = uploadFile?.mimeType === 'application/pdf';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const bucketName = process.env.NEXT_PUBLIC_BUCKET_NAME || 'prepper-assets';
+    const fullUrl = uploadFile?.storageUrl ? `${supabaseUrl}/storage/v1/object/public/${bucketName}/${uploadFile.storageUrl}` : null;
+
+    return (
+      <Card className="mb-4">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <CardTitle className="text-lg font-semibold line-clamp-2">{paper.title}</CardTitle>
+              <p className="text-sm text-muted-foreground capitalize mt-1">{paper.subject}</p>
+            </div>
+            <div className="flex flex-col gap-2 ml-2">
+              <Badge variant="outline" className="capitalize whitespace-nowrap">
+                {paper.difficulty}
+              </Badge>
+              <span className={`px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap ${statusMap[paper.status]}`}>
+                {paper.status}
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* PDF Preview */}
+          {uploadFile && fullUrl && isPdf && (
+            <div className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+              <Icons.fileText className="h-4 w-4" />
+              <a 
+                href={fullUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm hover:underline"
+              >
+                {uploadFile.filename || 'View PDF'}
+              </a>
+            </div>
+          )}
+
+          {/* Upload Date */}
+          <div className="text-xs text-muted-foreground">
+            Uploaded: {new Date(paper.createdAt || '').toLocaleDateString()}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => router.push(ROUTES.TEST_PAPERS.VIEW(paper.testPaperId))}
+              className="flex-1 min-w-[80px]"
+            >
+              <Icons.eye className="mr-1 h-3 w-3" />
+              View
+            </Button>
+            
+            {["queued", "failed"].includes(paper.status) && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleProcessTestPaper(paper.testPaperId)}
+                disabled={paper.status === "processing"}
+                className="flex-1 min-w-[80px]"
+              >
+                {paper.status === "failed" ? "Retry" : "Process"}
+              </Button>
+            )}
+
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={paper.status !== "review"}
+              onClick={() => setSelectedJob(paper)}
+              className="flex-1 min-w-[80px]"
+            >
+              Review
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (selectedJob) {
@@ -192,12 +287,12 @@ export function TestPapersList({ initialTestPapers }: Props) {
       />
 
       <div className="">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold">{STRINGS.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">{STRINGS.title}</h1>
             <p className="text-muted-foreground">{STRINGS.description}</p>
           </div>
-          <Button onClick={() => setUploadDialogOpen(true)}>
+          <Button onClick={() => setUploadDialogOpen(true)} className="w-full sm:w-auto">
             <Icons.upload className="mr-2 h-4 w-4" />
             {STRINGS.uploadNewPaper}
           </Button>
@@ -217,11 +312,29 @@ export function TestPapersList({ initialTestPapers }: Props) {
         )}
 
         {!isLoading && !error && (
-          <DataTable
-            data={testPapers}
-            columns={testPaperColumns}
-            pageSize={8}
-          />
+          <>
+            {/* Mobile View - Cards */}
+            <div className="md:hidden">
+              {testPapers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No test papers found.
+                </div>
+              ) : (
+                testPapers.map((paper) => (
+                  <MobileTestPaperCard key={paper.testPaperId} paper={paper} />
+                ))
+              )}
+            </div>
+
+            {/* Desktop View - Table */}
+            <div className="hidden md:block">
+              <DataTable
+                data={testPapers}
+                columns={testPaperColumns}
+                pageSize={8}
+              />
+            </div>
+          </>
         )}
       </div>
     </>
