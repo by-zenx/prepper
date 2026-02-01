@@ -33,7 +33,7 @@ export function TestPaperQuestions({ testPaperId }: TestPaperQuestionsProps) {
   } = trpc.testPaper.getQuestions.useQuery({ 
     testPaperId,
     page: currentPage,
-    limit: 2,
+    limit: 5,
     search: searchTerm || undefined,
     statusFilter: statusFilter !== "all" ? statusFilter : undefined,
     reviewFilter: reviewFilter !== "all" ? reviewFilter : undefined,

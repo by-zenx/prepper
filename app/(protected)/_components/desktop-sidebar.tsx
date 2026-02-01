@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useRouter, usePathname } from "next/navigation"
 import {
   BookOpen, Settings, HelpCircle, LogOut, Moon, Sun,
-  ChevronRight, Menu
+  ChevronRight, Menu, Lock, Unlock
 } from "lucide-react"
 
 import { ISidebarItem, SIDEBAR_ITEMS } from "@/config"
@@ -84,7 +84,29 @@ export const DesktopSidebar = () => {
                 className="p-2 rounded-md hover:bg-accent/10 transition-colors"
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
-                <Menu className="h-4 w-4 text-foreground" />
+                <AnimatePresence mode="wait">
+                  {collapsed ? (
+                    <motion.div
+                      key="lock"
+                      initial={{ rotate: -90, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: 90, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Unlock className="h-4 w-4 text-foreground" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="unlock"
+                      initial={{ rotate: 90, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: -90, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      >
+                      <Lock className="h-4 w-4 text-foreground" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.button>
             )}
           </AnimatePresence>

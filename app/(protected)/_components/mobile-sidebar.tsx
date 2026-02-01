@@ -3,7 +3,7 @@
 import React from "react"
 import { Icons } from "@/components/icons"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { AuthService } from "@/services/api/auth.service"
 import { ISidebarItem, SIDEBAR_ITEMS } from "@/config"
 
@@ -13,6 +13,7 @@ interface MobileSidebarProps {
 
 export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
   const router = useRouter()
+  const pathname = usePathname()
   const authService = new AuthService()
 
   const handleLogout = async () => {
@@ -36,28 +37,40 @@ export const MobileSidebar = ({ onClose }: MobileSidebarProps) => {
       <nav className="flex-1 overflow-auto p-2">
         {SIDEBAR_ITEMS.map((item: ISidebarItem) => {
           const Icon = item.icon
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
           return (
             <div key={item.name} className="mb-1">
-              <a 
-                href={item.href} 
-                onClick={onClose} 
-                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent/30"
+              <button 
+                onClick={() => {
+                  router.push(item.href)
+                  onClose()
+                }} 
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent/30 text-left ${
+                  isActive ? "bg-primary text-primary-foreground" : ""
+                }`}
               >
                 <Icon className="h-4 w-4" />
                 <span>{item.name}</span>
-              </a>
+              </button>
               {item.subItems && (
                 <div className="pl-8 mt-1">
-                  {item.subItems.map((s) => (
-                    <a 
-                      key={s.name} 
-                      href={s.href} 
-                      onClick={onClose} 
-                      className="block px-2 py-1 rounded-md text-sm hover:bg-accent/40"
-                    >
-                      {s.name}
-                    </a>
-                  ))}
+                  {item.subItems.map((s) => {
+                    const isSubActive = pathname === s.href || pathname.startsWith(s.href + "/")
+                    return (
+                      <button 
+                        key={s.name} 
+                        onClick={() => {
+                          router.push(s.href)
+                          onClose()
+                        }}
+                        className={`block w-full px-2 py-1 rounded-md text-sm hover:bg-accent/40 text-left ${
+                          isSubActive ? "text-primary bg-accent" : ""
+                        }`}
+                      >
+                        {s.name}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
